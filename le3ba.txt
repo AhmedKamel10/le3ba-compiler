@@ -1,0 +1,9 @@
+int x = alloc(5);
+
+int y = 6;
+print y;
+define pr(y){
+	y = y * 2 ;
+	print y;}
+
+call pr(y);
