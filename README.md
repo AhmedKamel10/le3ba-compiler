@@ -107,10 +107,3 @@ Run
 
 
 
-
-If you want next:
-- a **shorter “resume-friendly” README**
-- a **diagram section**
-- or a **🔥 tagline for recruiters**
-
-Just say the word.
