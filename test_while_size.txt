@@ -1,0 +1,7 @@
+int y = 10;
+int x = alloc(10);
+
+while (y < size(x)){
+print y ;
+y = y + 1;
+}

@@ -53,6 +53,13 @@ vector<Token> run_lexer(string filename) {
                 else if (c == '-') t = MINUS;
                 else if (c == '*') t = MULTIPLY;
                 else if (c == '/') t = DIVIDE;
+                else if (c == '<') t = UNKNOWN; // LT operator
+                else if (c == '>') t = UNKNOWN; // GT operator
+                else if (c == '(') t = UNKNOWN; // Open paren
+                else if (c == ')') t = UNKNOWN; // Close paren
+                else if (c == '{') t = UNKNOWN; // Open brace
+                else if (c == '}') t = UNKNOWN; // Close brace
+                else if (c == ',') t = UNKNOWN; // Comma
 
                 tokens.push_back({t, string(1, c)});
                 prev = c;

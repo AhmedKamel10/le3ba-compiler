@@ -1,0 +1,2 @@
+int size = 5;
+int arr = alloc(size);

@@ -1,0 +1,7 @@
+int size = 3;
+int arr = alloc(size);
+set(arr, 0, 10);
+set(arr, 1, 20);
+set(arr, 2, 30);
+int val = get(arr, 1);
+print val;

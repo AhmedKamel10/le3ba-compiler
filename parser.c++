@@ -23,9 +23,7 @@ struct FunctionNode{
     vector <Token> body;
 };
 
-// ONLY keep these at the top:
 void compile_if(IfNode& node, vector<unsigned char>& bytecode, map<string, int>& name_to_id, int& next_var_id, map<string, int>& func_to_address);
-
 void compile_block(const vector<Token>& tokens, vector<unsigned char>& bytecode, map<string, int>& name_to_id, int& next_var_id, map<string, int>& func_to_address);
 
 void parse_function(const vector<Token>& tokens, size_t& i, vector<unsigned char>& bytecode, map<string, int>& func_to_address, map<string, int>& name_to_id, int& next_var_id);
@@ -33,6 +31,7 @@ void parse_function(const vector<Token>& tokens, size_t& i, vector<unsigned char
 void parse_function(const vector<Token>& tokens, size_t& i, vector<unsigned char>& bytecode, 
                     map<string, int>& func_to_address, map<string, int>& name_to_id, 
                     int& next_var_id);
+void compile_expression(const vector<Token>& expr, vector<unsigned char>& bytecode, map<string, int>& name_to_id);
 // --- VM Execution ---
 void run_vm(const vector<unsigned char>& bytecode) {
     vector<array<int, 256>> frames;
@@ -43,7 +42,7 @@ void run_vm(const vector<unsigned char>& bytecode) {
     map<int, vector<int>> heap;
     int next_ptr = 1;
 
-    while (ip < bytecode.size()) {
+    while (ip < bytecode.size()) {  
         unsigned char opcode = bytecode[ip++];
         switch (opcode) {
             case 0x00: // HALT
@@ -116,7 +115,7 @@ void run_vm(const vector<unsigned char>& bytecode) {
                 if (condition == 0) ip = target; 
                 break;
             } 
-            case 0x016: {
+            case 0x16: {
                 int target = bytecode[ip++];
                 ip = target;
                 break;
@@ -155,24 +154,30 @@ void run_vm(const vector<unsigned char>& bytecode) {
 
             }
             case 0x30: { // ALLOC
-                if (stack.empty()) {
-                    cout << "VM Error: Stack empty during ALLOC" << endl;
-                    return;
-                }
-                int size = stack.back(); stack.pop_back();
-                if (size < 0 || size > 1000000) { // Safety limit: 1 million elements
-                    cout << "VM Error: Invalid allocation size: " << size << endl;
-                    return;
-                }
+                int size = stack.back(); 
+                stack.pop_back(); 
+                
+                
                 heap[next_ptr] = vector<int>(size, 0);
-                stack.push_back(next_ptr++);
+                
+                stack.push_back(next_ptr++); 
+                
                 break;
             }
 
-            case 0x31:{ //store index (ptr, idx, val)
+            case 0x31: { // STORE_INDEX
                 int val = stack.back(); stack.pop_back();
                 int idx = stack.back(); stack.pop_back();
                 int ptr = stack.back(); stack.pop_back();
+
+                if (heap.find(ptr) == heap.end()) {
+                    cout << "VM Error: Invalid Heap Pointer " << ptr << endl;
+                    return;
+                }
+                if (size_t(idx) < 0 || size_t(idx) >= heap[ptr].size()) {
+                    cout << "VM Error: Index " << idx << " out of bounds for pointer " << ptr << endl;
+                    return;
+                }
                 heap[ptr][idx] = val;
                 break;
             }
@@ -186,10 +191,29 @@ void run_vm(const vector<unsigned char>& bytecode) {
 
             }
 
-            default:
+            case 0x33:{
+            if (stack.empty()){
+                    cout << "VM Error: Stack empty during SIZE" << endl;               
+                    return ;
+                }
+            
+            int ptr = stack.back(); 
+            stack.pop_back();
+            if (heap.find(ptr) == heap.end()) {
+                cout << "VM Error: Invalid pointer " << ptr << endl;
+                return;
+            }
+            int size = heap[ptr].size();
+            stack.push_back(static_cast<int> (size));
+            break;
+
+
+        }
+        default:
                 cout << "VM Error: Unknown OpCode " << (int)opcode << endl;
                 return;
-        }
+    }
+    
     }
 }
 
@@ -233,45 +257,30 @@ void compile_arithmetic_statement(const vector<Token>& stmt, vector<unsigned cha
 
 
 
-void dump_bytecode(const vector<unsigned char>& bytecode, map<string, int>& func_to_address) {
-    cout << "--- BYTECODE DUMP ---" << endl;
-    for (size_t i = 0; i < bytecode.size(); ++i) {
-        printf("%04zu: 0x%02X ", i, bytecode[i]);
-        
-        // Match addresses back to function names for clarity
-        for (auto const& [name, addr] : func_to_address) {
-            if (addr == (int)i) cout << "  <-- Function: " << name;
-        }
-        
-        // Add a little hint for common opcodes
-        if (bytecode[i] == 0x12) cout << " (OP_CALL)";
-        if (bytecode[i] == 0x20) cout << " (OP_RET)";
-        if (bytecode[i] == 0x16) cout << " (OP_JMP/SKIP)";
-        
-        cout << endl;
-    }
-    cout << "---------------------" << endl;
-}
+
 
 void compile_condition(const vector<Token>& cond_tokens, vector<unsigned char>& bytecode, map<string, int>& name_to_id) {
-    for (int i : {0, 2}) { // Left and Right side
-        if (cond_tokens[i].type == INDENT) {
-            bytecode.push_back(0x04);//load the variable
-            bytecode.push_back((unsigned char)name_to_id[cond_tokens[i].value]);
-        } else {
-            int val = stoi(cond_tokens[i].value);
-            bytecode.push_back(0x01);
-            for (int j = 0; j < 4; j++) bytecode.push_back((val >> (j * 8)) & 0xFF);
+
+
+    int op_idx = -1;
+    for (size_t k = 0; k < cond_tokens.size(); k ++){
+        if(cond_tokens[k].value == "==" || cond_tokens[k].value == "<" || cond_tokens[k].value == ">") {
+            op_idx = k; break;
         }
+
     }
-    if (cond_tokens[1].value == "==") bytecode.push_back(0x14);
-    else if (cond_tokens[1].value == "<"){
-        bytecode.push_back(0x17);
-        
-    }
-    else if (cond_tokens[1].value == ">"){
-        bytecode.push_back(0x18);
-    }
+    //left side
+    vector<Token> left(cond_tokens.begin(), cond_tokens.begin() + op_idx);
+    compile_expression(left, bytecode, name_to_id);
+
+    //right_side
+    vector<Token> right(cond_tokens.begin()+ op_idx + 1, cond_tokens.end());
+    compile_expression(right, bytecode, name_to_id);
+
+    if (cond_tokens[op_idx].value == "==") bytecode.push_back(0x14);
+    else if (cond_tokens[op_idx].value == "<") bytecode.push_back(0x17);
+    else if (cond_tokens[op_idx].value == ">") bytecode.push_back(0x18);
+
 }
 
 
@@ -279,16 +288,23 @@ void compile_condition(const vector<Token>& cond_tokens, vector<unsigned char>& 
 
 void compile_while(WhileNode& node, vector<unsigned char>& bytecode, map<string, int>& name_to_id, int& next_var_id, map<string, int>& func_to_address){
 
-    int start = bytecode.size(); // Start of the loop
-    compile_condition(node.condition, bytecode, name_to_id); //put either 0 or 1 on the stack 
+   int start = (int)bytecode.size(); 
+    
+    // 2. This must generate: LOAD x, PUSH 10, LT
+    compile_condition(node.condition, bytecode, name_to_id); 
 
-    bytecode.push_back(0x015);
-    int exit = bytecode.size();
-    bytecode.push_back(0);
+    bytecode.push_back(0x15); // OP_JZ
+    int exit_patch = (int)bytecode.size();
+    bytecode.push_back(0); // Placeholder
+
     compile_block(node.body, bytecode, name_to_id, next_var_id, func_to_address);
-    bytecode.push_back(0x016);
-    bytecode.push_back((unsigned char)start);
-    bytecode[exit] = (unsigned char) bytecode.size();
+
+    bytecode.push_back(0x16); // OP_JMP
+    // 3. Jump to 'start', NOT start + 1 or start - 1
+    bytecode.push_back((unsigned char)start); 
+
+    // 4. Patch the exit
+    bytecode[exit_patch] = (unsigned char)bytecode.size();
 
 
 
@@ -310,7 +326,7 @@ void compile_if(IfNode& node, vector<unsigned char>& bytecode, map<string, int>&
 
 void parse_function(const vector<Token>& tokens, size_t& i, vector<unsigned char>& bytecode, map<string, int>& func_to_address, map<string, int>& name_to_id, int& next_var_id) {
     
-    bytecode.push_back(0x016);
+    bytecode.push_back(0x16);
     int skip_placeholder = bytecode.size();
     bytecode.push_back(0);
     string func_name = tokens[i++].value;
@@ -372,7 +388,7 @@ void compile_call(const vector<Token>& tokens, size_t& i, vector<unsigned char>&
         i++; // Move to next token (like a comma or the closing parenthesis)
     }
     
-    i++; // skip ')'
+    i++; // skip )
     if (i < tokens.size() && tokens[i].value == ";") {
         i++; // skip ';' safely so the main loop starts fresh on the next line
     }
@@ -380,6 +396,81 @@ void compile_call(const vector<Token>& tokens, size_t& i, vector<unsigned char>&
     bytecode.push_back(0x19); // OP_CALL
     bytecode.push_back((unsigned char)func_to_address[func_name]);
     i -- ;
+}
+
+
+
+void compile_expression(const vector<Token>& expr, vector<unsigned char>& bytecode, map<string, int>& name_to_id) {
+    vector<Token> ops; // To store operators and push them at the end
+    for (size_t i = 0; i < expr.size(); i++) {
+        Token t = expr[i];
+
+        if (t.value == "size" && i + 1 < expr.size() && expr[i+1].value == "(") {
+            i += 2;
+            if (i < expr.size()) {
+                if (expr[i].type == INDENT) {
+                    bytecode.push_back(0x04);
+                    bytecode.push_back((unsigned char)name_to_id[expr[i].value]);
+                }
+                i++; // skip variable
+                i++; // skip ')'
+            }
+            bytecode.push_back(0x33); // OP_SIZE
+            i--;
+            continue;
+        }
+
+        if (t.value == "get" && i + 1 < expr.size() && expr[i+1].value == "(") {
+            // This is the GET function: get(ptr, idx)
+            i += 2; // skip 'get' and '('
+            
+            // Load pointer
+            if (i < expr.size() && expr[i].type == INDENT) {
+                bytecode.push_back(0x04);
+                bytecode.push_back((unsigned char)name_to_id[expr[i].value]);
+            }
+            i++; // skip variable/ptr
+            i++; // skip ','
+            
+            // Load index
+            if (i < expr.size()) {
+                if (expr[i].type == NUMBER) {
+                    int val = stoi(expr[i].value);
+                    bytecode.push_back(0x01);
+                    for (int j = 0; j < 4; j++) bytecode.push_back((val >> (j * 8)) & 0xFF);
+                } else if (expr[i].type == INDENT) {
+                    bytecode.push_back(0x04);
+                    bytecode.push_back((unsigned char)name_to_id[expr[i].value]);
+                }
+            }
+            i++; // skip index
+            i++; // skip ')'
+            
+            bytecode.push_back(0x32); // OP_LOAD_INDEX
+            i--;
+            continue;
+        }
+
+        if (t.type == NUMBER) {
+            int val = stoi(t.value);
+            bytecode.push_back(0x01);
+            for (int j = 0; j < 4; j++) bytecode.push_back((val >> (j * 8)) & 0xFF);
+        } 
+        else if (t.type == INDENT) {
+            bytecode.push_back(0x04);
+            bytecode.push_back((unsigned char)name_to_id[t.value]);
+        }
+        // 3. DELAY the Operators
+        else if (t.value == "+" || t.value == "-" || t.value == "*") {
+            ops.push_back(t);
+        }
+    }
+
+    for (int i = ops.size() - 1; i >= 0; i--) {
+        if (ops[i].value == "+") bytecode.push_back(0x10);
+        else if (ops[i].value == "-") bytecode.push_back(0x11);
+        else if (ops[i].value == "*") bytecode.push_back(0x12);
+    }
 }
 
 
@@ -395,10 +486,13 @@ void compile_block(const vector<Token>& tokens, vector<unsigned char>& bytecode,
             i ++;
             if (tokens[i].value == "("){
                 i ++;
-            while(i < tokens.size() && tokens[i].value != ")") {
-                wh_node.condition.push_back(tokens[i++]);
-            }               
-             i ++; 
+                int paren_count = 1;
+                while(i < tokens.size() && paren_count > 0) {
+                    if (tokens[i].value == "(") paren_count++;
+                    if (tokens[i].value == ")") paren_count--;
+                    if (paren_count > 0) wh_node.condition.push_back(tokens[i]);
+                    i++;
+                }
 
             }
 
@@ -419,7 +513,6 @@ void compile_block(const vector<Token>& tokens, vector<unsigned char>& bytecode,
 
         }
 
-        // 1. Handle IF Blocks (Brace Counting)
         else if (stmt.empty() && t.value == "if") {
             IfNode if_node;
             i++; // skip 'if'
@@ -469,38 +562,110 @@ void compile_block(const vector<Token>& tokens, vector<unsigned char>& bytecode,
 
         if (t.type == SEMICOLON) {
 
-    // 3. Check for ALLOC (Matches 'int x = alloc(5)')
-    if (stmt.size() >= 4 && stmt[3].value == "alloc") {
-        string var_name = stmt[1].value;
-        if (name_to_id.find(var_name) == name_to_id.end()) name_to_id[var_name] = next_var_id++;
+        // 3. Check for ALLOC (Matches 'int x = alloc(5)')
+if (stmt.size() >= 4 && stmt[3].value == "alloc") {
+    string var_name = stmt[1].value;
+    if (name_to_id.find(var_name) == name_to_id.end()) name_to_id[var_name] = next_var_id++;
 
-        int size = stoi(stmt[5].value);
-        bytecode.push_back(0x01); // PUSH_INT
-        for (int j = 0; j < 4; j++) bytecode.push_back((size >> (j * 8)) & 0xFF);
-        
-        bytecode.push_back(0x30); // OP_ALLOC
-        bytecode.push_back(0x02); // STORE_VAR
-        bytecode.push_back((unsigned char)name_to_id[var_name]);
+    // 1. Extract tokens between '(' and ')'
+    vector<Token> size_expr;
+    bool recording = false;
+    for (const auto& t : stmt) {
+        if (t.value == "(") { recording = true; continue; }
+        if (t.value == ")") { recording = false; break; }
+        if (recording) size_expr.push_back(t);
     }
-            // Declaration: int x = 5;
-    else if (stmt.size() == 4 && stmt[0].type == KEYWORD) {
-                string var_name = stmt[1].value;
-                if (name_to_id.find(var_name) == name_to_id.end()) name_to_id[var_name] = next_var_id++;
-                int val = stoi(stmt[3].value);
-                bytecode.push_back(0x01);
-                for (int j = 0; j < 4; j++) bytecode.push_back((val >> (j * 8)) & 0xFF);
-                bytecode.push_back(0x02);
-                bytecode.push_back((unsigned char)name_to_id[var_name]);
+
+    // 2. Compile that expression (This pushes the result to the stack)
+    compile_expression(size_expr, bytecode, name_to_id);
+    
+    // 3. Emit ALLOC and STORE
+    bytecode.push_back(0x30); // OP_ALLOC (pops size, pushes ptr)
+    bytecode.push_back(0x02); // STORE_VAR
+    bytecode.push_back((unsigned char)name_to_id[var_name]);
+
+    stmt.clear();
+    continue;
+}
+
+if (stmt.size() >= 4 && stmt[0].value == "set") {
+    vector<vector<Token>> args;
+    vector<Token> current_arg;
+    
+    for (size_t k = 2; k < stmt.size(); k++) {
+        if (stmt[k].value == "," || stmt[k].value == ")") {
+            if (!current_arg.empty()) {
+                args.push_back(current_arg);
+                current_arg.clear();
             }
+            if (stmt[k].value == ")") break;
+        } else {
+            current_arg.push_back(stmt[k]);
+        }
+    }
+
+    if (args.size() == 3) {
+        compile_expression(args[0], bytecode, name_to_id); // Pushes PTR
+        compile_expression(args[1], bytecode, name_to_id); // Pushes IDX
+        compile_expression(args[2], bytecode, name_to_id); // Pushes VAL
+        bytecode.push_back(0x31); // OP_STORE_I
+    }
+
+    stmt.clear(); 
+    continue;     
+}
+
+
+        else if (stmt.size() == 4 && stmt[0].type == KEYWORD) {
+                        string var_name = stmt[1].value;
+                        if (name_to_id.find(var_name) == name_to_id.end()) name_to_id[var_name] = next_var_id++;
+                        
+                        // Handle both: int x = 5; and int x = y;
+                        if (stmt[3].type == NUMBER) {
+                            int val = stoi(stmt[3].value);
+                            bytecode.push_back(0x01);
+                            for (int j = 0; j < 4; j++) bytecode.push_back((val >> (j * 8)) & 0xFF);
+                        } else if (stmt[3].type == INDENT) {
+                            // Load from another variable
+                            bytecode.push_back(0x04);
+                            bytecode.push_back((unsigned char)name_to_id[stmt[3].value]);
+                        }
+                        
+                        bytecode.push_back(0x02);
+                        bytecode.push_back((unsigned char)name_to_id[var_name]);
+                    }
             // Print: print x;
-            else if (stmt.size() == 2 && stmt[0].value == "print") {
+        else if (stmt.size() == 2 && stmt[0].value == "print") {
                 bytecode.push_back(0x04);
                 bytecode.push_back((unsigned char)name_to_id[stmt[1].value]);
                 bytecode.push_back(0x03);
             }
-            else if (stmt.size() >= 3) {
-                compile_arithmetic_statement(stmt, bytecode, name_to_id);
+        else if (stmt.size() >= 3) {
+
+            int eq_idx = -1;
+            for (size_t k = 0; k < stmt.size(); k++){
+                if(stmt[k].value == "=" ){
+                    eq_idx = k;
+                    break;
+                }
+
             }
+            if (eq_idx != -1) {
+                string var_name = stmt[eq_idx - 1].value;
+                // Ensure the slice EXCLUDES the semicolon
+                vector<Token> right;
+                for (size_t k = eq_idx + 1; k < stmt.size(); k++) {
+                    if (stmt[k].type != SEMICOLON) right.push_back(stmt[k]);
+                }
+
+                // This MUST put the final result on top of the stack
+                compile_expression(right, bytecode, name_to_id);
+                
+                bytecode.push_back(0x02); // STORE_VAR
+                bytecode.push_back((unsigned char)name_to_id[var_name]);
+            }
+
+        }
 
         
             stmt.clear();
