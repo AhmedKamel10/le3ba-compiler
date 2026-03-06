@@ -104,6 +104,8 @@ Static array bounds: alloc() creates fixed-size arrays; resizing is not supporte
 
 Jump offsets: Control flow uses absolute jumps, which can be error-prone in complex programs.
 
-### Compilation & Run
+### Compilation 
 g++ src/lexer.c++ src/parser.c++ -o le3ba
+### Run
+
 ./le3ba tests/le3ba.txt
