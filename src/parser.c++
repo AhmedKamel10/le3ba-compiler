@@ -479,7 +479,6 @@ void compile_block(const vector<Token>& tokens, vector<unsigned char>& bytecode,
 
     for (size_t i = 0; i < tokens.size(); i++) {
         const Token& t = tokens[i];
-        cout << "token: " << t.value << " i=" << i << endl;
 
         if (stmt.empty() && t.value == "while"){
             WhileNode wh_node;
@@ -675,9 +674,23 @@ if (stmt.size() >= 4 && stmt[0].value == "set") {
     }
 }
 
-int main() {
-    cout << "--- Le3ba Language Compiler ---" << endl;
-    vector<Token> tokens = run_lexer("le3ba.txt");
+int main(int argc, char* argv[]) {
+    std::cout << "--- Le3ba Language Compiler ---" << std::endl;
+
+    // 1. Check if the user actually gave us a file to run
+    if (argc < 2) {
+        std::cerr << "Error: No input file provided." << std::endl;
+        std::cerr << "Usage: ./le3ba <filename>" << std::endl;
+        return 1; 
+    }
+
+    // 2. Use the argument from the terminal instead of a hardcoded string
+    std::string filename = argv[1];
+
+    // 3. Pass that filename into your lexer
+    vector<Token> tokens = run_lexer(filename);
+
+    // --- The rest of your logic stays exactly the same ---
     vector<unsigned char> bytecode;
     map<string, int> name_to_id;
     map<string, int> func_to_address;
