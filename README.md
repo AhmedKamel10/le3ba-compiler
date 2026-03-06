@@ -23,41 +23,41 @@ define fib(n) {
     int a = 0;
     int b = 1;
     int i = 0;
-    int temp = 0 
+    int temp = 0 ;
     while (i < n) {
-        temp = a + b 
-        a = b
-        b = temp
-        i = i + 1
-        print a
+        temp = a + b; 
+        a = b;
+        b = temp;
+        i = i + 1;
+        print a;
     }
 }
 
-call fib(7)
+call fib(7);
 ```
 
 2. Array Search Example
 ```text
-int n = 4
-int arr = alloc(n)
-set(arr, 0, 10)
-set(arr, 1, 55)
-set(arr, 2, 22)
-set(arr, 3, 40)
+int n = 4;
+int arr = alloc(n);
+set(arr, 0, 10);
+set(arr, 1, 55);
+set(arr, 2, 22);
+set(arr, 3, 40);
 
-int target = 55
-int found = 0
-int k = 0
-int current = 0
+int target = 55;
+int found = 0;
+int k = 0;
+int current = 0;
 while (k < 4) {
-    current = get(arr, k)
+    current = get(arr, k);
     if (current == target) {
-        found = 1
-    }
-    k = k + 1
+        found = 1;
+    };
+    k = k + 1;
 }
-int result = found
-print result
+int result = found;
+print result;
 ```
 ## Instruction Set Architecture (ISA)
 | Hex  | Mnemonic   | Stack Effect        | Description                              |
