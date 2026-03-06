@@ -8,78 +8,84 @@ Le3ba explores language internals, memory allocation, and function-call mechanic
 
 Stack-based Architecture: All operations happen on a manual stack, similar to low-level VMs like JVM or CPython.
 
-Function Frames: Support for local variables and parameter scoping using a call stack.
+Function Frames: Local variables and parameter scoping using a call stack.
 
 Control Flow: if statements and while loops via jump instructions (JZ and JMP).
 
-Dynamic Arrays & Heap: alloc() creates heap blocks, supporting arrays and dynamic memory access.
+Dynamic Arrays & Heap: alloc() creates heap blocks for arrays and dynamic memory access.
 
-Arithmetic & Comparison: Standard math (+, -, *) and comparison operators (<, >, ==).
+Arithmetic & Comparison: Standard math (+, -, *) and comparisons (<, >, ==).
 
-💻 Example Code
+💻 Examples
 1. Iterative Fibonacci
-
 define fib(n) {
     int a = 0;
     int b = 1;
     int i = 0;
-    int temp = 0; 
+    int temp = 0 
     while (i < n) {
-        temp = a + b; 
-        a = b;
-        b = temp;
-        i = i + 1;
-        print a;
-    };
-};
+        temp = a + b 
+        a = b
+        b = temp
+        i = i + 1
+        print a
+    }
+}
 
-call fib(7);
+call fib(7)
 2. Array Search Example
-int n = 4;
-int arr = alloc(n);
-set(arr, 0, 10);
-set(arr, 1, 55);
-set(arr, 2, 22);
-set(arr, 3, 40);
+int n = 4
+int arr = alloc(n)
+set(arr, 0, 10)
+set(arr, 1, 55)
+set(arr, 2, 22)
+set(arr, 3, 40)
 
-int target = 55;
-int found = 0;
-int k = 0;
-int current = 0;
+int target = 55
+int found = 0
+int k = 0
+int current = 0
 while (k < 4) {
-    current = get(arr, k);
+    current = get(arr, k)
     if (current == target) {
-        found = 1;
-    };
-    k = k + 1;
-};
-int result = found;
-print result;
-
+        found = 1
+    }
+    k = k + 1
+}
+int result = found
+print result
+3. Nested Loops & Control Flow
+int m = 0
+while (m < 3) {
+    int s = 0
+    while (s < 2) {
+        print m
+        print s
+        s = s + 1
+    }
+    m = m + 1
+}
 🧾 Instruction Set Architecture (ISA)
-| Hex  | Mnemonic   | Stack Effect        | Description                              |
-| ---- | ---------- | ------------------- | ---------------------------------------- |
-| 0x01 | PUSH_INT   | → `value`           | Push a 4-byte integer onto the stack     |
-| 0x02 | STORE_VAR  | `value` →           | Store top of stack into a local variable |
-| 0x03 | PRINT      | `value` →           | Pop and print top of stack               |
-| 0x04 | LOAD_VAR   | → `value`           | Load local variable onto stack           |
-| 0x10 | ADD        | `a b` → `a+b`       | Integer addition                         |
-| 0x11 | SUB        | `a b` → `a-b`       | Integer subtraction                      |
-| 0x12 | MUL        | `a b` → `a*b`       | Integer multiplication                   |
-| 0x14 | OP_EQ      | `a b` → `(a==b)`    | Equality check                           |
-| 0x15 | OP_JZ      | `cond` →            | Jump to target if `cond == 0`            |
-| 0x16 | OP_JMP     | →                   | Unconditional jump                       |
-| 0x17 | OP_LT      | `a b` → `(a<b)`     | Less-than check                          |
-| 0x18 | OP_GT      | `a b` → `(a>b)`     | Greater-than check                       |
-| 0x19 | OP_CALL    | →                   | Call function (new frame)                |
-| 0x20 | OP_RET     | →                   | Return from function (pop frame)         |
-| 0x30 | OP_ALLOC   | `size` → `ptr`      | Allocate heap block and return pointer   |
-| 0x31 | OP_STORE_I | `ptr idx val` →     | Store value at heap[ptr][idx]            |
-| 0x32 | OP_LOAD_I  | `ptr idx` → `value` | Load value from heap[ptr][idx]           |
-| 0x33 | OP_SIZE    | `ptr` → `size`      | Push size of heap block onto stack       |
-
-
-Notes
+Hex	Mnemonic	Stack Effect	Description
+0x01	PUSH_INT	→ value	Push a 4-byte integer onto the stack
+0x02	STORE_VAR	value →	Store top of stack into a local variable
+0x03	PRINT	value →	Pop and print top of stack
+0x04	LOAD_VAR	→ value	Load local variable onto stack
+0x10	ADD	a b → a+b	Integer addition
+0x11	SUB	a b → a-b	Integer subtraction
+0x12	MUL	a b → a*b	Integer multiplication
+0x14	OP_EQ	a b → (a==b)	Equality check
+0x15	OP_JZ	cond →	Jump to target if cond == 0
+0x16	OP_JMP	→	Unconditional jump
+0x17	OP_LT	a b → (a<b)	Less-than check
+0x18	OP_GT	a b → (a>b)	Greater-than check
+0x19	OP_CALL	→	Call function (new frame)
+0x20	OP_RET	→	Return from function (pop frame)
+0x30	OP_ALLOC	size → ptr	Allocate heap block and return pointer
+0x31	OP_STORE_I	ptr idx val →	Store value at heap[ptr][idx]
+0x32	OP_LOAD_I	ptr idx → value	Load value from heap[ptr][idx]
+0x33	OP_SIZE	ptr → size	Push size of heap block onto stack
+⚡ Notes
 
 All operations are stack-based
 
@@ -87,7 +93,10 @@ Function calls create isolated local frames
 
 Heap memory supports dynamic arrays
 
-Control flow uses absolute jump offsets for loops and conditional
+Control flow uses absolute jump offsets for loops and conditionals
 
+🛠 Compilation & Run
 g++ main.cpp lexer.cpp parser.cpp -o le3ba
 ./le3ba  # Reads source from le3ba.txt
+
+If you want, I can also add a visual diagram showing the stack, heap, and frames, which makes the README much more impressive and easier to understand for new users.
