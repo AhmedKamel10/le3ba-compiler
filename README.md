@@ -1,12 +1,13 @@
-Le3ba (لعبة)
 
+# Le3ba (لعبة)
 A stack-based Virtual Machine and Bytecode Compiler built from scratch in C++.
 
 Le3ba explores language internals, memory allocation, and function-call mechanics, implementing the full pipeline from raw text → tokens → bytecode → execution.
 
-Features
 
-Stack-based Architecture: All operations happen on a manual stack, similar to low-level VMs like JVM or CPython.
+## Features
+
+tack-based Architecture: All operations happen on a manual stack, similar to low-level VMs like JVM or CPython.
 
 Function Frames: Local variables and parameter scoping using a call stack.
 
@@ -15,10 +16,9 @@ Control Flow: if statements and while loops via jump instructions (JZ and JMP).
 Dynamic Arrays & Heap: alloc() creates heap blocks for arrays and dynamic memory access.
 
 Arithmetic & Comparison: Standard math (+, -, *) and comparisons (<, >, ==).
-
-Examples
+## Examples
 1. Iterative Fibonacci
-
+```text
 define fib(n) {
     int a = 0;
     int b = 1;
@@ -34,11 +34,10 @@ define fib(n) {
 }
 
 call fib(7)
+```
 
-
-Array Search Example
-
-
+2. Array Search Example
+```text
 int n = 4
 int arr = alloc(n)
 set(arr, 0, 10)
@@ -59,8 +58,8 @@ while (k < 4) {
 }
 int result = found
 print result
-
-
+```
+## Instruction Set Architecture (ISA)
 | Hex  | Mnemonic   | Stack Effect        | Description                              |
 | ---- | ---------- | ------------------- | ---------------------------------------- |
 | 0x01 | PUSH_INT   | → `value`           | Push a 4-byte integer onto the stack     |
@@ -83,9 +82,7 @@ print result
 | 0x33 | OP_SIZE    | `ptr` → `size`      | Push size of heap block onto stack       |
 
 
-
-Notes
-
+## Notes
 All operations are stack-based
 
 Function calls create isolated local frames
@@ -94,7 +91,19 @@ Heap memory supports dynamic arrays
 
 Control flow uses absolute jump offsets for loops and conditionals
 
+## Limitaiton
+No recursion yet: Function calls work, but recursive calls are not fully supported.
 
-Compilation & Run
+No comments: The language does not support inline or block comments.
+
+No standard library: Only integer arithmetic, arrays, and control flow are implemented.
+
+Limited data types: Only integers are supported; no floats, strings, or booleans natively.
+
+Static array bounds: alloc() creates fixed-size arrays; resizing is not supported.
+
+Jump offsets: Control flow uses absolute jumps, which can be error-prone in complex programs.
+
+### Compilation & Run
 g++ main.cpp lexer.cpp parser.cpp -o le3ba
 ./le3ba  # Reads source from le3ba.txt
