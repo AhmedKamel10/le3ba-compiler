@@ -83,6 +83,9 @@ print result;
 
 
 ## Notes
+
+in a production version, I would use a 4-byte int for jump offsets to support larger programs.
+
 All operations are stack-based
 
 Function calls create isolated local frames
